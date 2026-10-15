@@ -1,0 +1,2 @@
+chat_model_name: qwen3.5-flash  # 语言模型
+embedding_model_name: text-embedding-v4  #向量化模型

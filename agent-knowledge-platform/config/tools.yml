@@ -1,0 +1,4 @@
+java_team_api_url: "http://你的java端网址/ai/team/getTeamMemberInfo"
+java_document_api_url: "http://你的java端网址/ai/document/getDocumentInfo"
+
+data_document_path: "文档内容存储地址"
