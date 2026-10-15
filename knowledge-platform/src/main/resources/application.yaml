@@ -1,0 +1,99 @@
+spring:
+  application:
+    name: knowledge_platform
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/knowledge_platform?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password: 123456
+  profiles:
+    active: dev
+  main:
+    allow-circular-references: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+
+logging:
+  level:
+    com:
+      itheima:
+        knowledge_platform:
+          mapper: debug
+          service: info
+          controller: info
+
+
+mybatis:
+  #mapper配置文件
+  mapper-locations: classpath:mapper/*.xml
+  #给实体类起别名，以后写 XML 映射文件时，不用写全类名，直接写类名就行
+  type-aliases-package: com.itheima.knowledge_platform.pojo.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 令牌配置
+knowledge-platform:
+  jwt:
+    # 设置jwt签名加密时使用的秘钥
+    admin-secret-key: itcast1234567890itcast1234567890
+    # 设置jwt过期时间（2小时）
+    admin-ttl: 7200000
+    # 设置前端传递过来的令牌名称
+    admin-token-name: token
+    #用户端
+    user-secret-key: itcast1234567890itcast1234567890
+    user-ttl: 7200000
+    user-token-name: authentication
+
+# 文件上传配置
+file:
+  # 头像上传地址
+  avatar-path: C:/Users/86157/Pictures/avatars/  # 注意：路径末尾要有 /
+  #文档内容分块上传地址
+  temp-path: C:/Users/86157/Documents/data/temp/uploads/
+  #合并文档生成临时文件所在地址
+  merge-path: C:/Users/86157/Documents/data/documents/
+  #历史版本存放文件夹
+  history-path: C:/Users/86157/Documents/data/documents/
+  #文档正式存放地址
+  formal-path: C:/Users/86157/Documents/data/documents/
+  # 分块上传配置
+  chunk:
+    # 最大分块大小（默认5MB，单位：字节）
+    max-chunk-size: 1024  # 5 * 1024 * 1024  #1kb
+    # 或者使用更直观的写法（Spring Boot 2.2+ 支持）
+    # max-chunk-size: 5MB
+    #存放会话历史记录
+  history-chat-session-path: C:/Users/86157/Documents/data/ai/sessions/
+
+team:
+  user:
+    #一个用户最多创建团队数目
+    max-created-team: 3
+    #一个团队最少人数
+    min-team-member: 2
+    #一个团队最多人数
+    max-team-member: 10
+    #推迟天数
+    expired: 7
+
+page:
+  team-member:
+    #页码
+    page-num: 1
+    #单页大小
+    page-size: 10
+
+admin:
+  comment:
+    max-delete-batch-count: 50
+
+ai:
+  url:
+    agent-base-url: http://localhost:8000

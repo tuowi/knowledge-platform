@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.itheima.knowledge_platform.mapper.DocumentMapper">
+
+
+    <update id="updateById" parameterType="com.itheima.knowledge_platform.pojo.entity.Document">
+        update document
+        <set>
+            <if test="title != null">title=#{title},</if>
+            <if test="status != null">status=#{status},</if>
+            <if test="auditStatus != null">audit_status=#{auditStatus},</if>
+            <if test="visibility != null">visibility=#{visibility},</if>
+            <if test="authorId != null">author_id=#{authorId},</if>
+            <if test="categoryId != null">category_id=#{categoryId},</if>
+            <if test="teamId != null">team_id=#{teamId},</if>
+            <if test="viewCount != null">view_count=#{viewCount},</if>
+            <if test="likeCount != null">like_count=#{likeCount},</if>
+            <if test="rejectReason != null">reject_reason=#{rejectReason},</if>
+            <if test="updatedAt != null">updated_at=#{updatedAt},</if>
+        </set>
+        where id=#{id}
+    </update>
+
+<!--    更新审核   审核状态乐观锁-->
+    <update id="updateReviewById">
+        UPDATE document
+        <set>
+            <if test="auditStatus != null">audit_status=#{auditStatus},</if>
+            <if test="rejectReason != null">reject_reason=#{rejectReason},</if>
+            <if test="updatedAt != null">updated_at=#{updatedAt},</if>
+        </set>
+        WHERE id = #{id} AND audit_status = 1
+    </update>
+
+    <!--    分页查询-->
+    <select id="pageQuery" resultType="com.itheima.knowledge_platform.pojo.vo.DocumentPageVO">
+        select d.id,
+        d.title,
+        d.version,
+        d.status,
+        d.visibility,
+        d.author_id,
+        d.category_id,
+        d.view_count,
+        d.like_count,
+        d.favorite_count,
+        d.created_at,
+        d.updated_at
+        from document d
+        left join document_tag dt on d.id = dt.document_id
+        <where>
+            <if test="status != null">and d.status=#{status}</if>
+            <if test="categoryId != null">and d.category_id=#{categoryId}</if>
+            <if test="startTime != null">and d.created_at &gt;= #{startTime}</if>
+            <if test="endTime != null">and d.created_at &lt;= #{endTime}</if>
+            <if test="tagIds != null and tagIds.size() > 0">
+                and dt.tag_id in
+                <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+                    #{tagId}
+                </foreach>
+            </if>
+            <choose>
+                <when test="visibility == 2">
+                    and d.visibility = 2
+                </when>
+                <when test="visibility == 1">
+                    and d.visibility = 1
+                    <if test="teamId != null">
+                        and d.team_id=#{teamId}
+                    </if>
+                </when>
+                <when test="visibility == 0">
+                    and d.visibility = 0
+                    and (d.author_id = #{authorId})
+                </when>
+                <otherwise>
+                    and (
+                    d.visibility = 2
+                    <if test="teamId != null">
+                        or (d.visibility = 1 and d.team_id = #{teamId})
+                    </if>
+                    <if test="authorId != null">
+                        or (d.visibility = 0 and d.author_id = #{authorId})
+                    </if>
+                    )
+                </otherwise>
+            </choose>
+        </where>
+        GROUP BY d.id
+        order by d.updated_at desc
+    </select>
+
+    <select id="selectByAuditStatusAndTitle" resultType="com.itheima.knowledge_platform.pojo.entity.Document">
+        select * from document
+        <where>
+            <if test="auditStatus != null">
+                audit_status=#{auditStatus}
+            </if>
+            <if test="title != null">
+                and title like concat('%',title,'%')
+            </if>
+        </where>
+        order by updated_at desc
+    </select>
+
+    <select id="selectByDocumentAdminDetailPageDTO"
+            resultType="com.itheima.knowledge_platform.pojo.entity.Document">
+        SELECT d.id,
+               d.title,
+               d.version,
+               d.status,
+               d.audit_status,
+               d.visibility,
+               d.author_id,
+               d.team_id,
+               d.view_count,
+               d.like_count,
+               d.favorite_count,
+               d.reject_reason,
+               d.created_at,
+               d.updated_at,
+               u.username AS author_name,
+               t.name     AS team_name
+        FROM document d
+                 LEFT JOIN user u ON d.author_id = u.id
+                 LEFT JOIN team t ON d.team_id = t.id
+        WHERE (#{status} IS NULL OR d.status = #{status})
+          AND (#{auditStatus} IS NULL OR d.audit_status=#{auditStatus})
+          -- 动态条件
+          AND (#{auditStatus} IS NULL OR d.audit_status = #{auditStatus})
+          AND (#{title} IS NULL OR d.title LIKE CONCAT('%', #{title}, '%'))
+          AND (#{authorName} IS NULL OR u.username LIKE CONCAT('%', #{authorName}, '%'))
+          AND (#{teamId} IS NULL OR d.team_id = #{teamId})
+          AND (#{startTime} IS NULL OR d.created_at &gt; #{startTime})
+          AND (#{endTime} IS NULL OR d.created_at &lt; #{endTime})
+        ORDER BY d.created_at DESC
+    </select>
+
+    <!--    统计用户数据-->
+    <select id="statisticsWithUser" resultType="com.itheima.knowledge_platform.pojo.inner.user.UserStatistics">
+        SELECT
+            -- 文档相关统计
+            COUNT(DISTINCT d.id) AS total_documents,
+            SUM(CASE WHEN d.status = 1 THEN 1 ELSE 0 END) AS published_documents,
+            SUM(CASE WHEN d.status = 0 THEN 1 ELSE 0 END) AS draft_documents,
+            SUM(CASE WHEN d.status = 2 THEN 1 ELSE 0 END) AS archived_documents,
+
+            -- 收藏数量
+            COUNT(DISTINCT f.id) AS total_favorites,
+
+            -- 评论数量
+            COUNT(DISTINCT c.id) AS total_comments,
+
+            -- 团队数量
+            COUNT(DISTINCT tm.team_id) AS total_teams
+
+        FROM `user` u
+                 LEFT JOIN `document` d ON d.author_id = u.id
+                 LEFT JOIN `favorite` f ON f.user_id = u.id
+                 LEFT JOIN `comment` c ON c.user_id = u.id
+                 LEFT JOIN `team_member` tm ON tm.user_id = u.id
+        WHERE u.id = #{authorId}
+    </select>
+
+    <select id="summaryUser" resultType="com.itheima.knowledge_platform.pojo.inner.document.Summary"
+            parameterType="java.lang.Long">
+        select
+            count(*) as total_documents,
+            sum(like_count) as total_likes,
+            sum(view_count) as total_views,
+            (select count(*) from comment c where c.document_id in
+                (select id from document where author_id = #{authorId})
+            ) as total_received_comments
+        from document d
+        where d.author_id = #{authorId}
+    </select>
+
+    <select id="byStatusUser" resultType="com.itheima.knowledge_platform.pojo.inner.document.ByStatus"
+            parameterType="java.lang.Long">
+        select sum(IF(status = 0, 1, 0)) draft,
+               sum(IF(status = 1, 1, 0)) published,
+               sum(IF(status = 2, 1, 0)) archived
+        from document
+        where author_id = #{authorId}
+    </select>
+
+    <select id="byAuditStatusUser" resultType="com.itheima.knowledge_platform.pojo.inner.document.ByAuditStatus"
+            parameterType="java.lang.Long">
+        select sum(IF(audit_status = 0, 1, 0)) editing,
+               sum(IF(audit_status = 1, 1, 0)) pending,
+               sum(IF(audit_status = 2, 1, 0)) approved,
+               sum(IF(audit_status = 3, 1, 0)) rejectrd
+        from document
+        where author_id =#{authorId}
+    </select>
+
+    <select id="byVisibilityUser" resultType="com.itheima.knowledge_platform.pojo.inner.document.ByVisibility"
+            parameterType="java.lang.Long">
+        select sum(IF(visibility = 0, 1, 0)) private_count,
+               sum(IF(visibility = 1, 1, 0)) team,
+               sum(IF(visibility = 2, 1, 0)) public_count
+        from document
+        where author_id = #{authorId}
+    </select>
+</mapper>

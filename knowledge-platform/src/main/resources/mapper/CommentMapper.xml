@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.itheima.knowledge_platform.mapper.CommentMapper">
+
+
+    <delete id="deleteBatchWithChildren">
+        delete from comment
+        <if test="ids != null and ids.size() > 0">
+            where id in
+            <foreach collection="ids" item="id" open="(" close=")" separator=",">
+                #{id}
+            </foreach>
+            or parent_id in
+            <foreach collection="ids" item="id" open="(" close=")" separator=",">
+                #{id}
+            </foreach>
+        </if>
+    </delete>
+
+    <select id="selectByCommentQueryRequestDTO"
+            resultType="com.itheima.knowledge_platform.pojo.vo.CommentAdminVO">
+        SELECT
+            c.id,
+            c.document_id,
+            d.title AS document_title,
+            c.parent_id,
+            (SELECT content FROM comment WHERE id = c.parent_id) AS parent_content,
+            c.user_id,
+            u.username AS user_name,
+            u.avatar AS user_avatar,
+            c.content,
+            c.created_at,
+            (SELECT COUNT(*) FROM comment WHERE parent_id = c.id) AS reply_count
+        FROM comment c
+                 LEFT JOIN document d ON c.document_id = d.id
+                 LEFT JOIN user u ON c.user_id = u.id
+                <where>
+                    <if test="keyword != null and keyword != ''">
+                        AND c.content LIKE CONCAT('%', #{keyword}, '%')
+                    </if>
+                    <if test="userId != null">
+                        AND c.user_id = #{userId}
+                    </if>
+                    <if test="documentId != null">
+                        AND c.document_id = #{documentId}
+                    </if>
+                </where>
+        ORDER BY c.created_at DESC
+    </select>
+
+    <!-- 查询文档的顶级评论 -->
+    <select id="selectTopByDocumentId" resultType="com.itheima.knowledge_platform.pojo.entity.Comment"
+            parameterType="java.lang.Long">
+        SELECT *
+        FROM comment
+        WHERE document_id = #{documentId}
+          AND parent_id IS NULL
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 查询回复 -->
+    <select id="selectRepliesByParentId" resultType="com.itheima.knowledge_platform.pojo.entity.Comment"
+            parameterType="java.lang.Long">
+        SELECT *
+        FROM comment
+        WHERE parent_id = #{parentId}
+        ORDER BY created_at ASC
+    </select>
+
+    <!-- 动态查询条件片段 -->
+    <sql id="whereConditions">
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND c.content LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+            <if test="userId != null">
+                AND c.user_id = #{userId}
+            </if>
+            <if test="documentId != null">
+                AND c.document_id = #{documentId}
+            </if>
+        </where>
+    </sql>
+</mapper>

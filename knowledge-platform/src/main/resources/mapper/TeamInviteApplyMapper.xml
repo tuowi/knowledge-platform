@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.itheima.knowledge_platform.mapper.TeamInviteApplyMapper">
+
+
+    <select id="selectByOperatedUserIdAndStatus"
+            resultType="com.itheima.knowledge_platform.pojo.entity.TeamInviteApply">
+        select * from team_invite_apply
+        <where>
+            <if test="userId != null">
+                operate_user_id=#{userId}
+            </if>
+            <if test="status != null">
+                and status=#{status}
+            </if>
+        </where>
+        order by created_at desc
+    </select>
+</mapper>

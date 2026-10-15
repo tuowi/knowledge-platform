@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.itheima.knowledge_platform.mapper.TeamMapper">
+
+
+    <select id="pageQuery" resultType="com.itheima.knowledge_platform.pojo.vo.TeamPageVO">
+        select t.*, tm.team_role
+        from team t left join team_member tm on t.id = tm.team_id
+        <where>
+            <if test="status != null">
+                status=#{status}
+            </if>
+            <if test="userId != null">
+                and t.id in (select team_id from team_member where user_id = #{userId})
+                and tm.user_id=#{userId}
+            </if>
+        </where>
+        order by t.created_at desc
+    </select>
+
+    <select id="selectUserTeamDetail" resultType="com.itheima.knowledge_platform.pojo.inner.user.UserTeam"
+            parameterType="java.lang.Long">
+        SELECT
+            t.id,
+            t.name,
+            CASE
+                WHEN tm.team_role = 1 THEN '队长'
+                ELSE '普通成员'
+                END AS role,
+            tm.joined_at AS joined_at
+        FROM team_member tm
+                 INNER JOIN team t ON t.id = tm.team_id
+        WHERE tm.user_id = #{userId}
+        ORDER BY tm.joined_at DESC
+    </select>
+
+    <select id="selectTeamAdminVOByStatusAndTeamName"
+            resultType="com.itheima.knowledge_platform.pojo.vo.TeamAdminVO">
+        SELECT
+        t.*,
+        u.username AS owner_name,
+        COUNT(DISTINCT tm.user_id) AS member_count,
+        COUNT(DISTINCT d.id) AS document_count
+        FROM team t
+        LEFT JOIN user u ON t.owner_user_id = u.id
+        LEFT JOIN team_member tm ON t.id = tm.team_id
+        LEFT JOIN document d ON t.id = d.team_id
+        <where>
+            <if test="teamName != null and teamName != ''">
+                (t.name LIKE CONCAT('%', #{teamName}, '%')
+            </if>
+            <if test="status != null">
+                AND t.status = #{status}
+            </if>
+        </where>
+        GROUP BY t.id, t.name, t.owner_user_id, u.username, t.status, t.created_at
+        ORDER BY t.created_at DESC
+    </select>
+
+    <select id="selectByTeamNameWithStatus" resultType="com.itheima.knowledge_platform.pojo.vo.TeamAvailableApplyVO"
+            parameterType="java.lang.String">
+        select t.*, u.username as owner_name
+        from team t
+        left join user u on t.owner_user_id = u.id
+        <where>
+            <if test="teamName != null and teamName != ''">
+                t.name like concat('%', #{teamName}, '%')
+            </if>
+            and t.status in (0, 1)
+        </where>
+    </select>
+</mapper>

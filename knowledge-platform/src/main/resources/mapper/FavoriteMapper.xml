@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.itheima.knowledge_platform.mapper.FavoriteMapper">
+
+
+    <select id="pageQuery" resultType="com.itheima.knowledge_platform.pojo.vo.FavoriteDocumentVO">
+        select f.id,
+               f.document_id,
+               d.team_id,
+               d.title,
+               d.visibility,
+               d.author_id,
+               d.status,
+               d.view_count,
+               d.like_count,
+               d.favorite_count,
+               f.created_at
+        from favorite f
+                 left join document d on f.document_id = d.id
+        where d.status != 0
+          AND (
+          d.visibility = 2  -- 公开文档，所有人可见
+          OR (d.visibility = 0 AND d.author_id = #{userId})  -- 私有文档，仅作者
+           OR (d.visibility = 1 AND d.team_id IN (  -- 团队文档，用户需在团队中
+            SELECT team_id FROM team_member WHERE user_id = #{userId}
+            ))
+            )
+        order by f.created_at desc
+    </select>
+</mapper>

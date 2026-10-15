@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.itheima.knowledge_platform.mapper.TeamMemberMapper">
+
+
+    <select id="selectUserDetailByTeamId"
+            resultType="com.itheima.knowledge_platform.pojo.vo.TeamMemberDetailPageVO">
+        select u.id,u.username,u.avatar,u.email,tm.team_role,tm.joined_at
+        from team_member tm
+                 left join user u on tm.user_id = u.id
+        where team_id=#{teamId} order by tm.team_role desc
+    </select>
+</mapper>
