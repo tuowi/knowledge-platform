@@ -1,0 +1,26 @@
+# ===== Java =====
+*.class
+*.jar
+*.war
+target/
+build/
+.gradle/
+*.iml
+.idea/
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+dist/
+build/
+
+# ===== 通用 =====
+.DS_Store
+*.log
+.env
